@@ -19,6 +19,11 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
+app.MapPost("/shorturl", async(UrlDto url, ApiDbContext db, HttpContext ctx) =>
+{
+
+});
+
 app.Run();
 
 class ApiDbContext : DbContext
