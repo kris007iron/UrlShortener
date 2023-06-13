@@ -6,7 +6,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-var connStr = builder.Configuration.GetConnectionString("DefaultConnection");
+var connStr = "DataSource=app.db";
 builder.Services.AddDbContext<ApiDbContext>(options => options.UseSqlite(connStr));
 
 var app = builder.Build();
@@ -19,7 +19,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-app.MapPost("/shorturl", async(UrlDto url, ApiDbContext db, HttpContext ctx) =>
+app.MapPost("/shorterurl", async(UrlDto url, ApiDbContext db, HttpContext ctx) =>
 {
     if (!Uri.TryCreate(url.Url, UriKind.Absolute, out var inputUrl))
         return Results.BadRequest("Invalid url has been provided");
@@ -42,6 +42,18 @@ app.MapPost("/shorturl", async(UrlDto url, ApiDbContext db, HttpContext ctx) =>
     {
         Url = result
     });
+});
+
+app.MapFallback(async (ApiDbContext db, HttpContext ctx) => 
+{ 
+    var path = ctx.Request.Path.ToUriComponent().Trim('/');
+    var urlMatch = await db.Urls.FirstOrDefaultAsync(c => 
+        c.ShorterUrl.Trim() == path.Trim());
+
+    if (urlMatch == null) 
+        return Results.BadRequest("Invalid request");
+
+    return Results.Redirect(urlMatch.Url);
 });
 
 app.Run();
