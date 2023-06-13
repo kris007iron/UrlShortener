@@ -21,7 +21,27 @@ app.UseHttpsRedirection();
 
 app.MapPost("/shorturl", async(UrlDto url, ApiDbContext db, HttpContext ctx) =>
 {
+    if (!Uri.TryCreate(url.Url, UriKind.Absolute, out var inputUrl))
+        return Results.BadRequest("Invalid url has been provided");
 
+    var random = new Random();
+    const string chars = "ABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890@az";
+    var randomStr = new string(Enumerable.Repeat(chars, 8).Select(c => c[random.Next(c.Length)]).ToArray());
+
+    var sUrl = new UrlManagement()
+    {
+        Url = url.Url,
+        ShorterUrl = randomStr
+    };
+    db.Urls.Add(sUrl);
+    db.SaveChangesAsync();
+
+    var result = $"{ctx.Request.Scheme}://{ctx.Request.Host}/{sUrl.ShorterUrl}";
+
+    return Results.Ok(new UrlShortResponseDto()
+    {
+        Url = result
+    });
 });
 
 app.Run();
